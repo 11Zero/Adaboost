@@ -9,6 +9,7 @@ from itertools import combinations, permutations
 import math
 import logging
 import scipy as sp
+from scipy import stats
 import xlrd
 import json
 import random
@@ -84,7 +85,10 @@ def single_svm_train(train_x,train_y,test_x,test_y):
             test_x_normal[:, i] = (x_test[:, i] - min[0, i]) / (max[0, i] - min[0, i])
     targeted_rate = clf.score(test_x_normal, test_y)
     return targeted_rate,clf
-
+def normpdf(x, mu, sigma):
+    u = (x-mu)/abs(sigma)
+    y = (1/(np.sqrt(2*np.pi)*abs(sigma)))*np.exp(-u*u/2)
+    return y
 # data = xlrd.open_workbook('data.xlsx')
 # table = data.sheets()[6]
 # with open('data7.json', 'w') as json_file:
@@ -141,25 +145,37 @@ for j in range(np.size(all_x_data[0, :])):
         all_x_normal[:, j] = (all_x_data[:, j] - min[0, j]) / (max[0, j] - min[0, j])
 x_col_num = [i for i in range(data_cols-1)]
 x_2_col_comb = list(combinations(x_col_num, 2))
-x_3_col_comb = list(combinations(x_col_num, 3))
-for j in range(len(x_3_col_comb)):
+x_col_comb = list(combinations(x_col_num, 2))
+for j in range(len(x_col_comb)):
     fig = plt.figure(0)
-    ax = fig.add_subplot(111,projection='3d')
-    x_col_num = x_3_col_comb[j][0]
-    y_col_num = x_3_col_comb[j][1]
-    z_col_num = x_3_col_comb[j][2]
+    # ax = fig
+    # ax = fig.add_subplot(111,projection='2d')
+    ax = fig.add_subplot(111)
+    x_col_num = x_col_comb[j][0]
+    y_col_num = x_col_comb[j][1]
+    # z_col_num = x_col_comb[j][2]
+    norm_x = np.linspace(0, 1, 50)
+    # print x.shape
+    norm_y = stats.norm.pdf(norm_x, 0.5,0.2)
+    # 绘制高斯分布
+    plt.plot(norm_y, norm_x)
     for i in range(data_rows):
         if all_y_data[i,0] == -1:
-            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+            # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
         else:
-            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
-    ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布')#显示图表标题
+            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+            # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+    # ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布')#显示图表标题
+    ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布')#显示图表标题
     ax.set_xlabel('元素'+str(x_col_num+1))#x轴名称
     ax.set_ylabel('元素'+str(y_col_num+1))#y轴名称
-    ax.set_zlabel('元素'+str(z_col_num+1))#z轴名称
+    # ax.set_zlabel('元素'+str(z_col_num+1))#z轴名称
     ax.grid(True)#显示网格线
     plt.show()
-    fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布.png')
+    fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布.png')
+    exit()
+    # fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布.png')
 
 
 print('------------------可视化数据------------------------')
