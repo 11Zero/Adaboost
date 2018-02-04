@@ -3,6 +3,8 @@
 
 import numpy as np
 import datetime
+import matplotlib.pyplot as plt
+from itertools import combinations, permutations
 import math
 import logging
 import scipy as sp
@@ -59,7 +61,7 @@ def get_weight(singal_svm,x_test,y_test,_D):
 
 def single_svm_train(train_x,train_y,test_x,test_y):
 
-    clf = svm.SVC(C=0.5, kernel='linear', gamma=40, decision_function_shape='ovr')
+    clf = svm.SVC(C=0.5, kernel='rbf', gamma='auto', decision_function_shape='ovr')
     max = np.zeros((1,np.size(train_x[0,:])))
     min = np.zeros((1,np.size(train_x[0,:])))
     train_x_normal = np.mat(np.zeros(np.shape(train_x)))
@@ -96,7 +98,7 @@ def single_svm_train(train_x,train_y,test_x,test_y):
 # exit()
 train_name = 'data1.json'
 test_name = 'data2.json'
-train_size = 0.7
+train_size = 0.6
 logger = logging.getLogger("recording")
 logger.setLevel(logging.DEBUG)
 # 建立一个filehandler来把日志记录在文件里，级别为debug以上
@@ -117,10 +119,48 @@ logger.addHandler(fh)
 with open(train_name) as json_file:
     train_data = json.load(json_file)
 
+
 data_rows = len(train_data)
 data_cols = len(train_data[0])
 all_x_data = np.mat(train_data)[:,0:0+data_cols-1]
 all_y_data = np.mat(train_data)[:,-1]
+
+print('------------------可视化数据------------------------')
+plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
+max = np.zeros((1, np.size(all_x_data[0, :])))
+min = np.zeros((1, np.size(all_x_data[0, :])))
+all_x_normal = np.mat(np.zeros(np.shape(all_x_data)))
+for j in range(np.size(all_x_data[0, :])):
+    max[0, j] = all_x_data[:, j].max()
+    min[0, j] = all_x_data[:, j].min()
+    if max[0, j] == min[0, j]:
+        all_x_normal[:, j] = np.mat(np.ones(np.shape(all_x_normal[:, j])))
+    else:
+        all_x_normal[:, j] = (all_x_data[:, j] - min[0, j]) / (max[0, j] - min[0, j])
+x_col_num = [i for i in range(data_cols-1)]
+x_2_col_comb = list(combinations(x_col_num, 2))
+for j in range(len(x_2_col_comb)):
+    plt.figure(0)
+    x_col_num = x_2_col_comb[j][0]
+    y_col_num = x_2_col_comb[j][1]
+    for i in range(data_rows):
+        if all_y_data[i,0] == -1:
+            plt.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+        else:
+            plt.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+    plt.title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布')#显示图表标题
+    plt.xlabel('元素'+str(x_col_num+1))#x轴名称
+    plt.ylabel('元素'+str(y_col_num+1))#y轴名称
+    plt.grid(True)#显示网格线
+    plt.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布.png')
+    plt.close(0)
+    # plt.show()
+
+print('------------------可视化数据------------------------')
+exit()
+
+
 random_seed = int(datetime.datetime.now().strftime("%H%M%S"))
 x_train, x_test, y_train, y_test = sklearn.model_selection.train_test_split(all_x_data, all_y_data,random_state=random_seed, train_size=train_size)
 test_data_rows = len(y_test)
@@ -129,7 +169,7 @@ train_data_rows = len(y_train)
 score = np.zeros((data_cols-2,1))
 svm_sets = np.zeros((len(score),1)).tolist()
 for i in range(data_cols-2):
-    result = single_svm_train(x_train[:,i:i+2],y_train,x_test[:,i:i+2],y_test)
+    result = single_svm_train(x_train[:,i],y_train,x_test[:,i],y_test)
     score[i] = result[0]
     svm_sets[i] = result[1]
     print("因素"+str(i+1)+"样本集准确率为："+str(result[0]))
@@ -144,7 +184,7 @@ D = np.ones((test_data_rows,1))*1/test_data_rows
 svm_weights = np.zeros((len(score),1))
 final_result = np.zeros((1,test_data_rows))
 for i in range(len(score_order)):
-    x = x_test[:,int(score_order[i,0]):int(score_order[i,0])+2]
+    x = x_test[:,int(score_order[i,0])]
     svm = svm_sets[int(score_order[i,0])]
     print("D = " + str(D.T))
     result = get_weight(svm,x,y_test,D)
@@ -165,23 +205,25 @@ for i in range(len(score_order)):
     final_result = final_result+result[2]*svm.predict(x_normal)
     svm_weights[int(score_order[i,0])] = result[2]
     err = 0
-    for j in range(len(final_result)):
+    for j in range(np.size(final_result)):
+        # if np.abs(final_result[0][j] - y_test[j])>0.2:
+        #     err += 1
         mid_val = 0
-        if final_result[0][j] > 0:
+        if final_result[0,j] > 0:
             mid_val = 1
-        elif final_result[0][j] < 0:
+        elif final_result[0,j] < 0:
             mid_val = -1
         if mid_val != y_test[j]:
             err += 1
         if mid_val == 0:
-            print("mid_val = "+str(mid_val))
+            print("累积第" + str(i + 1) + "个svm时出现异常")
     print("因素"+str(int(score_order[i,0])+1)+"样本集准确率为："+str(result[0]))
-    print("此时累积准确率为："+str(1-err/len(final_result)))
+    print("此时累积准确率为："+str(1-err/np.size(final_result)))
 print("权重为"+str(svm_weights.T.tolist()))
 final_result = final_result[0].tolist()
 print(final_result)
 err = 0
-for i in range(len(final_result)):
+for i in range(np.size(final_result)):
     if final_result[i]>0:
         final_result[i] = 1
     elif final_result[i]<0:
@@ -190,7 +232,7 @@ for i in range(len(final_result)):
         err = err + 1
 print(final_result)
 print(y_test.T.tolist()[0])
-print("强分类器准确率为："+str(1-err/len(final_result)))
+print("强分类器准确率为："+str(1-err/np.size(final_result)))
 
 with open(test_name) as json_file:
     test_data = json.load(json_file)
@@ -201,7 +243,7 @@ data_cols = len(test_data[0])
 y = np.mat(test_data)[:,-1]
 final_result = np.zeros((1,data_rows))
 for i in range(len(svm_weights)):
-    x = np.mat(test_data)[:,i:i+2]
+    x = np.mat(test_data)[:,i]
     x_normal = np.mat(np.zeros(np.shape(x)))
     max = np.zeros((1, np.size(x[0, :])))
     min = np.zeros((1, np.size(x[0, :])))
@@ -218,7 +260,9 @@ for i in range(len(svm_weights)):
     print(str(i+1)+"因素：weight = "+str(svm_weights[i])+"fore = "+str(forecast))
     print(final_result)
     err = 0
-    for j in range(len(final_result)):
+    for j in range(np.size(final_result)):
+        # if np.abs(final_result[0][j] - y[j])>0.2:
+        #     err = err + 1
         mid_val = 0
         if final_result[0][j] > 0:
             mid_val = 1
@@ -228,23 +272,25 @@ for i in range(len(svm_weights)):
             err += 1
         if mid_val == 0:
             print("累积第"+str(i+1)+"个svm时出现异常")
-    print("此时累积测试准确率为："+str(1-err/len(final_result)))
+    print("此时累积测试准确率为："+str(1-err/np.size(final_result)))
 print(final_result)
 err = 0
-final_result = final_result[0]
-for i in range(len(final_result)):
-    if final_result[i]>0:
-        final_result[i] = 1
-    elif final_result[i]<0:
-        final_result[i] = -1
-    if final_result[i] != y[i]:
+
+for i in range(np.size(final_result)):
+    # if np.abs(final_result[i] - y[i]) > 0.2:
+    #     err = err + 1
+    if final_result[0,i]>0:
+        final_result[0,i] = 1
+    elif final_result[0,i]<0:
+        final_result[0,i] = -1
+    if final_result[0,i] != y[i]:
         err+=1
-    if final_result[i] == 0:
-        final_result[i] = 0
+    if final_result[0,i] == 0:
+        final_result[0,i] = 0
 print(final_result)
 print(y.T.tolist()[0])
-print("强分类器真实测试准确率为："+str(1-err/len(final_result)))
+print("强分类器真实测试准确率为："+str(1-err/np.size(final_result)))
 logger.info(final_result)
 logger.info(y.T.tolist()[0])
-logger.info("强分类器真实测试准确率为："+str(1-err/len(final_result)))
+logger.info("强分类器真实测试准确率为："+str(1-err/np.size(final_result)))
 
