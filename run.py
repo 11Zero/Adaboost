@@ -4,6 +4,7 @@
 import numpy as np
 import datetime
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from itertools import combinations, permutations
 import math
 import logging
@@ -140,22 +141,26 @@ for j in range(np.size(all_x_data[0, :])):
         all_x_normal[:, j] = (all_x_data[:, j] - min[0, j]) / (max[0, j] - min[0, j])
 x_col_num = [i for i in range(data_cols-1)]
 x_2_col_comb = list(combinations(x_col_num, 2))
-for j in range(len(x_2_col_comb)):
-    plt.figure(0)
-    x_col_num = x_2_col_comb[j][0]
-    y_col_num = x_2_col_comb[j][1]
+x_3_col_comb = list(combinations(x_col_num, 3))
+for j in range(len(x_3_col_comb)):
+    fig = plt.figure(0)
+    ax = fig.add_subplot(111,projection='3d')
+    x_col_num = x_3_col_comb[j][0]
+    y_col_num = x_3_col_comb[j][1]
+    z_col_num = x_3_col_comb[j][2]
     for i in range(data_rows):
         if all_y_data[i,0] == -1:
-            plt.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
         else:
-            plt.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
-    plt.title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布')#显示图表标题
-    plt.xlabel('元素'+str(x_col_num+1))#x轴名称
-    plt.ylabel('元素'+str(y_col_num+1))#y轴名称
-    plt.grid(True)#显示网格线
-    plt.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布.png')
-    plt.close(0)
-    # plt.show()
+            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+    ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布')#显示图表标题
+    ax.set_xlabel('元素'+str(x_col_num+1))#x轴名称
+    ax.set_ylabel('元素'+str(y_col_num+1))#y轴名称
+    ax.set_zlabel('元素'+str(z_col_num+1))#z轴名称
+    ax.grid(True)#显示网格线
+    plt.show()
+    fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布.png')
+
 
 print('------------------可视化数据------------------------')
 exit()
