@@ -63,7 +63,7 @@ def get_weight(singal_svm,x_test,y_test,_D):
 
 def single_svm_train(train_x,train_y,test_x,test_y):
 
-    clf = svm.SVC(C=0.5, kernel='rbf', gamma='auto', decision_function_shape='ovr')
+    clf = svm.SVC(C=4.3, kernel='rbf', gamma='auto', decision_function_shape='ovo')
     max = np.zeros((1,np.size(train_x[0,:])))
     min = np.zeros((1,np.size(train_x[0,:])))
     train_x_normal = np.mat(np.zeros(np.shape(train_x)))
@@ -75,6 +75,8 @@ def single_svm_train(train_x,train_y,test_x,test_y):
         else:
             train_x_normal[:, i] = (train_x[:, i] - min[0, i]) / (max[0, i] - min[0, i])
     clf.fit(train_x_normal, train_y)
+    max = np.zeros((1, np.size(test_x[0, :])))
+    min = np.zeros((1, np.size(test_x[0, :])))
     test_x_normal = np.mat(np.zeros(np.shape(test_x)))
     for i in range(np.size(test_x[0, :])):
         max[0, i] = test_x[:, i].max()
@@ -82,28 +84,28 @@ def single_svm_train(train_x,train_y,test_x,test_y):
         if max[0, i] == min[0, i]:
             test_x_normal[:, i] = np.mat(np.ones(np.shape(test_x_normal[:, i])))
         else:
-            test_x_normal[:, i] = (x_test[:, i] - min[0, i]) / (max[0, i] - min[0, i])
+            test_x_normal[:, i] = (test_x[:, i] - min[0, i]) / (max[0, i] - min[0, i])
     targeted_rate = clf.score(test_x_normal, test_y)
-    return targeted_rate,clf
+    return targeted_rate,clf,clf.predict(test_x_normal)
 def normpdf(x, mu, sigma):
     u = (x-mu)/abs(sigma)
     y = (1/(np.sqrt(2*np.pi)*abs(sigma)))*np.exp(-u*u/2)
     return y
 # data = xlrd.open_workbook('data.xlsx')
-# table = data.sheets()[6]
-# with open('data7.json', 'w') as json_file:
+# table = data.sheets()[0]
+# with open('data1.json', 'w') as json_file:
 #     json_file.write(json.dumps(table._cell_values))
 # train_data = table._cell_values
 #
 # data = xlrd.open_workbook('data.xlsx')
-# table = data.sheets()[7]
-# with open('data8.json', 'w') as json_file:
+# table = data.sheets()[1]
+# with open('data2.json', 'w') as json_file:
 #     json_file.write(json.dumps(table._cell_values))
 # test_data = table._cell_values
 # exit()
 train_name = 'data1.json'
 test_name = 'data2.json'
-train_size = 0.6
+train_size = 0.8
 logger = logging.getLogger("recording")
 logger.setLevel(logging.DEBUG)
 # 建立一个filehandler来把日志记录在文件里，级别为debug以上
@@ -130,56 +132,79 @@ data_cols = len(train_data[0])
 all_x_data = np.mat(train_data)[:,0:0+data_cols-1]
 all_y_data = np.mat(train_data)[:,-1]
 
-print('------------------可视化数据------------------------')
-plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
-plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
-max = np.zeros((1, np.size(all_x_data[0, :])))
-min = np.zeros((1, np.size(all_x_data[0, :])))
-all_x_normal = np.mat(np.zeros(np.shape(all_x_data)))
-for j in range(np.size(all_x_data[0, :])):
-    max[0, j] = all_x_data[:, j].max()
-    min[0, j] = all_x_data[:, j].min()
-    if max[0, j] == min[0, j]:
-        all_x_normal[:, j] = np.mat(np.ones(np.shape(all_x_normal[:, j])))
-    else:
-        all_x_normal[:, j] = (all_x_data[:, j] - min[0, j]) / (max[0, j] - min[0, j])
-x_col_num = [i for i in range(data_cols-1)]
-x_2_col_comb = list(combinations(x_col_num, 2))
-x_col_comb = list(combinations(x_col_num, 2))
-for j in range(len(x_col_comb)):
-    fig = plt.figure(0)
-    # ax = fig
-    # ax = fig.add_subplot(111,projection='2d')
-    ax = fig.add_subplot(111)
-    x_col_num = x_col_comb[j][0]
-    y_col_num = x_col_comb[j][1]
-    # z_col_num = x_col_comb[j][2]
-    norm_x = np.linspace(0, 1, 50)
-    # print x.shape
-    norm_y = stats.norm.pdf(norm_x, 0.5,0.2)
-    # 绘制高斯分布
-    plt.plot(norm_y, norm_x)
-    for i in range(data_rows):
-        if all_y_data[i,0] == -1:
-            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
-            # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
-        else:
-            ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
-            # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
-    # ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布')#显示图表标题
-    ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布')#显示图表标题
-    ax.set_xlabel('元素'+str(x_col_num+1))#x轴名称
-    ax.set_ylabel('元素'+str(y_col_num+1))#y轴名称
-    # ax.set_zlabel('元素'+str(z_col_num+1))#z轴名称
-    ax.grid(True)#显示网格线
-    plt.show()
-    fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布.png')
-    exit()
-    # fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布.png')
+
+print('------------------支持向量机start------------------------')
+
+with open(test_name) as json_file:
+    test_data = json.load(json_file)
 
 
-print('------------------可视化数据------------------------')
+data_rows = len(test_data)
+data_cols = len(test_data[0])
+test_x_data = np.mat(test_data)[:,0:0+data_cols-1]
+test_y_data = np.mat(test_data)[:,-1]
+
+
+print(single_svm_train(all_x_data,all_y_data,test_x_data,test_y_data))
+
 exit()
+print('------------------支持向量机end------------------------')
+
+# print('------------------可视化数据start------------------------')
+# plt.rcParams['font.sans-serif']=['SimHei'] #用来正常显示中文标签
+# plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
+# max = np.zeros((1, np.size(all_x_data[0, :])))
+# min = np.zeros((1, np.size(all_x_data[0, :])))
+# all_x_normal = np.mat(np.zeros(np.shape(all_x_data)))
+# for j in range(np.size(all_x_data[0, :])):
+#     max[0, j] = all_x_data[:, j].max()
+#     min[0, j] = all_x_data[:, j].min()
+#     if max[0, j] == min[0, j]:
+#         all_x_normal[:, j] = np.mat(np.ones(np.shape(all_x_normal[:, j])))
+#     else:
+#         all_x_normal[:, j] = (all_x_data[:, j] - min[0, j]) / (max[0, j] - min[0, j])
+# x_col_num = [i for i in range(data_cols-1)]
+# x_2_col_comb = list(combinations(x_col_num, 2))
+# x_col_comb = list(combinations(x_col_num, 2))
+# for j in range(len(x_col_comb)):
+#     if j != 1:
+#         continue
+#     fig = plt.figure(0)
+#     # ax = fig
+#     # ax = fig.add_subplot(111,projection='2d')
+#     ax = fig.add_subplot(111)
+#     x_col_num = x_col_comb[j][0]
+#     y_col_num = x_col_comb[j][1]
+#     # z_col_num = x_col_comb[j][2]
+#     norm_x = np.linspace(0, 1, 50)
+#     # print x.shape
+#     # 1-2 norm_y = stats.norm.pdf(norm_x, 0.1,0.07)*0.15
+#     # 1-2 plt.plot(norm_y, norm_x)
+#     # 1-3 norm_y = stats.norm.pdf(norm_x, 0.61, 0.1) * -0.2 + 0.95
+#     # 1-3 plt.plot(norm_y, norm_x)
+#     norm_y = stats.norm.pdf(norm_x, 0.61,0.1)*-0.2+0.95
+#     plt.plot(norm_y, norm_x)
+#     for i in range(data_rows):
+#         if all_y_data[i,0] == -1:
+#             ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+#             # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'r',marker = '<')
+#         else:
+#             ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+#             # ax.scatter(np.array(all_x_normal[i, x_col_num]), np.array(all_x_normal[i, y_col_num]),np.array(all_x_normal[i, z_col_num]),s = 30,alpha=0.5,c = 'b',marker = '>')
+#     # ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布')#显示图表标题
+#     ax.set_title('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布')#显示图表标题
+#     ax.set_xlabel('元素'+str(x_col_num+1))#x轴名称
+#     ax.set_ylabel('元素'+str(y_col_num+1))#y轴名称
+#     # ax.set_zlabel('元素'+str(z_col_num+1))#z轴名称
+#     ax.grid(True)#显示网格线
+#     plt.show()
+#     fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'散点分布.png')
+#
+#     # fig.savefig('元素'+str(x_col_num+1)+'-'+str(y_col_num+1)+'-'+str(z_col_num+1)+'散点分布.png')
+#
+#
+# print('------------------可视化数据end------------------------')
+# exit()
 
 
 random_seed = int(datetime.datetime.now().strftime("%H%M%S"))
